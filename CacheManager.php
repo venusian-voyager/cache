@@ -182,6 +182,34 @@ class CacheManager implements FactoryContract
     }
 
     /**
+     * Create an instance of the database cache driver.
+     *
+     * @param  array  $config
+     * @return \Voyager\Cache\Repository
+     */
+    protected function createDatabaseDriver(array $config)
+    {
+        $connection = $this->app['db']->connection($config['connection'] ?? null);
+
+        $store = new DatabaseStore(
+            $connection,
+            $config['table'],
+            $this->getPrefix($config),
+            $config['lock_table'] ?? 'cache_locks',
+            $config['lock_lottery'] ?? [2, 100],
+            $config['lock_timeout'] ?? 86400,
+            $this->getSerializableClasses($config),
+        );
+
+        return $this->repository(
+            $store->setLockConnection(
+                $this->app['db']->connection($config['lock_connection'] ?? $config['connection'] ?? null)
+            ),
+            $config
+        );
+    }
+
+    /**
      * Create an instance of the failover cache driver.
      *
      * @param  array  $config
