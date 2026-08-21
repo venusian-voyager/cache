@@ -1,0 +1,46 @@
+{
+    "name": "voyager/cache",
+    "description": "The Voyager Cache package.",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Angel Gonzalez",
+            "email": "angel@projectsaturnstudios.com"
+        },
+        {
+            "name": "Taylor Otwell"
+        }
+    ],
+    "require": {
+        "php": "^8.4|^8.5",
+        "voyager/collections": "^0.8.0",
+        "voyager/contracts": "^0.8.0",
+        "voyager/macroable": "^0.8.0",
+        "voyager/nuts-and-bolts": "^0.8.0"
+    },
+    "suggest": {
+        "voyager/filesystem": "Required to use the file cache driver (^0.8.0).",
+        "voyager/redis": "Required to use the redis cache driver (^0.8.0).",
+        "symfony/cache": "Required to use PSR-6 cache bridge (^7.2)."
+    },
+    "autoload": {
+        "psr-4": {
+            "Voyager\\Cache\\": ""
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.8.x-dev"
+        },
+        "venusian": {
+            "upstream": "laravel/framework",
+            "upstream-ref": "v12.67.0",
+            "upstream-path": "src/Illuminate/Cache",
+            "ported-at": "2026-08-20"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev"
+}
