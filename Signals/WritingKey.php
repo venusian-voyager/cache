@@ -1,18 +1,18 @@
 <?php
 
-namespace Voyager\Cache\Events;
+namespace Voyager\Cache\Signals;
 
-class KeyWriteFailed extends CacheEvent
+class WritingKey extends CacheEvent
 {
     /**
-     * The value that would have been written.
+     * The value that will be written.
      *
      * @var mixed
      */
     public $value;
 
     /**
-     * The number of seconds the key should have been valid.
+     * The number of seconds the key should be valid.
      *
      * @var int|null
      */

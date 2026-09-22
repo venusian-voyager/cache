@@ -61,7 +61,7 @@ class ClearCommand extends Command
      */
     public function handle()
     {
-        $this->venusian['events']->dispatch(
+        $this->venusian['signals']->dispatch(
             'cache:clearing', [$this->argument('store'), $this->tags()]
         );
 
@@ -75,7 +75,7 @@ class ClearCommand extends Command
             return self::FAILURE;
         }
 
-        $this->venusian['events']->dispatch(
+        $this->venusian['signals']->dispatch(
             'cache:cleared', [$this->argument('store'), $this->tags()]
         );
 
@@ -91,7 +91,9 @@ class ClearCommand extends Command
      */
     public function flushMagicAliases()
     {
-        if (! $this->files->exists($storagePath = storage_path('framework/cache'))) {
+        $storagePath = rtrim((string) $this->venusian->make('path.storage'), '/\\').'/framework/cache';
+
+        if (! $this->files->exists($storagePath)) {
             return;
         }
 

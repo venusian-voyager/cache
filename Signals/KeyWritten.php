@@ -1,11 +1,11 @@
 <?php
 
-namespace Voyager\Cache\Events;
+namespace Voyager\Cache\Signals;
 
-class WritingKey extends CacheEvent
+class KeyWritten extends CacheEvent
 {
     /**
-     * The value that will be written.
+     * The value that was written.
      *
      * @var mixed
      */

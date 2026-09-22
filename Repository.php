@@ -6,25 +6,26 @@ use ArrayAccess;
 use BadMethodCallException;
 use Closure;
 use DateTimeInterface;
-use Voyager\Cache\Events\CacheFlushed;
-use Voyager\Cache\Events\CacheFlushFailed;
-use Voyager\Cache\Events\CacheFlushing;
-use Voyager\Cache\Events\CacheHit;
-use Voyager\Cache\Events\CacheMissed;
-use Voyager\Cache\Events\ForgettingKey;
-use Voyager\Cache\Events\KeyForgetFailed;
-use Voyager\Cache\Events\KeyForgotten;
-use Voyager\Cache\Events\KeyWriteFailed;
-use Voyager\Cache\Events\KeyWritten;
-use Voyager\Cache\Events\RetrievingKey;
-use Voyager\Cache\Events\RetrievingManyKeys;
-use Voyager\Cache\Events\WritingKey;
-use Voyager\Cache\Events\WritingManyKeys;
+use Voyager\Cache\Signals\CacheFlushed;
+use Voyager\Cache\Signals\CacheFlushFailed;
+use Voyager\Cache\Signals\CacheFlushing;
+use Voyager\Cache\Signals\CacheHit;
+use Voyager\Cache\Signals\CacheMissed;
+use Voyager\Cache\Signals\ForgettingKey;
+use Voyager\Cache\Signals\KeyForgetFailed;
+use Voyager\Cache\Signals\KeyForgotten;
+use Voyager\Cache\Signals\KeyWriteFailed;
+use Voyager\Cache\Signals\KeyWritten;
+use Voyager\Cache\Signals\RetrievingKey;
+use Voyager\Cache\Signals\RetrievingManyKeys;
+use Voyager\Cache\Signals\WritingKey;
+use Voyager\Cache\Signals\WritingManyKeys;
 use Voyager\Cache\Limiters\ConcurrencyLimiterBuilder;
 use Voyager\Contracts\Cache\LockProvider;
 use Voyager\Contracts\Cache\Repository as CacheContract;
 use Voyager\Contracts\Cache\Store;
-use Voyager\Contracts\Events\Dispatcher;
+use Voyager\Contracts\IOPools\Loop;
+use Voyager\Contracts\Signals\SignalDispatcher;
 use Voyager\NutsAndBolts\DataObjects\Carbon;
 use Voyager\NutsAndBolts\Collection;
 use Voyager\NutsAndBolts\Concerns\InteractsWithTime;
@@ -53,9 +54,11 @@ class Repository implements ArrayAccess, CacheContract
     /**
      * The event dispatcher implementation.
      *
-     * @var \Voyager\Contracts\Events\Dispatcher|null
+     * @var \Voyager\Contracts\Signals\SignalDispatcher|null
      */
     protected $events;
+
+    protected ?Loop $loop = null;
 
     /**
      * The default number of seconds to store items.
@@ -900,7 +903,7 @@ class Repository implements ArrayAccess, CacheContract
     /**
      * Get the event dispatcher instance.
      *
-     * @return \Voyager\Contracts\Events\Dispatcher|null
+     * @return \Voyager\Contracts\Signals\SignalDispatcher|null
      */
     public function getEventDispatcher()
     {
@@ -910,12 +913,26 @@ class Repository implements ArrayAccess, CacheContract
     /**
      * Set the event dispatcher instance.
      *
-     * @param  \Voyager\Contracts\Events\Dispatcher  $events
+     * @param  \Voyager\Contracts\Signals\SignalDispatcher  $events
      * @return void
      */
-    public function setEventDispatcher(Dispatcher $events)
+    public function setEventDispatcher(SignalDispatcher $events)
     {
         $this->events = $events;
+    }
+
+    /** The loop a defer() call queues on. The manager sets it; a bare repository needs it set by hand. */
+    public function setLoop(Loop $loop): static
+    {
+        $this->loop = $loop;
+
+        return $this;
+    }
+
+    /** Every call queued on the loop, answered by a promise. */
+    public function defer(): DeferredRepository
+    {
+        return new DeferredRepository($this, $this->loop ?? throw new \RuntimeException('No event loop on this cache repository: call setLoop() first.'));
     }
 
     /**

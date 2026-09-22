@@ -37,7 +37,7 @@ class PhpRedisLock extends RedisLock
     /**
      * {@inheritDoc}
      */
-    public function release()
+    public function release(): bool
     {
         return (bool) $this->redis->eval(
             LuaScripts::releaseLock(),

@@ -2,8 +2,8 @@
 
 namespace Voyager\Cache;
 
-use Voyager\Cache\Events\CacheFlushed;
-use Voyager\Cache\Events\CacheFlushing;
+use Voyager\Cache\Signals\CacheFlushed;
+use Voyager\Cache\Signals\CacheFlushing;
 use Voyager\Contracts\Cache\Store;
 
 class TaggedCache extends Repository

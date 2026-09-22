@@ -30,7 +30,7 @@ class NoLock extends Lock
      *
      * @return bool
      */
-    public function release()
+    public function release(): bool
     {
         return true;
     }
@@ -40,7 +40,7 @@ class NoLock extends Lock
      *
      * @return void
      */
-    public function forceRelease()
+    public function forceRelease(): void
     {
         //
     }

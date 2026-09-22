@@ -71,7 +71,7 @@ class FileStore implements Store, LockProvider
      * @param  string  $key
      * @return mixed
      */
-    public function get($key)
+    public function get($key): mixed
     {
         return $this->getPayload($key)['data'] ?? null;
     }
@@ -84,7 +84,7 @@ class FileStore implements Store, LockProvider
      * @param  int  $seconds
      * @return bool
      */
-    public function put($key, $value, $seconds)
+    public function put($key, $value, $seconds): bool
     {
         $this->ensureCacheDirectoryExists($path = $this->path($key));
 
@@ -182,7 +182,7 @@ class FileStore implements Store, LockProvider
      * @param  mixed  $value
      * @return int
      */
-    public function increment($key, $value = 1)
+    public function increment($key, $value = 1): bool|int
     {
         $raw = $this->getPayload($key);
 
@@ -198,7 +198,7 @@ class FileStore implements Store, LockProvider
      * @param  mixed  $value
      * @return int
      */
-    public function decrement($key, $value = 1)
+    public function decrement($key, $value = 1): bool|int
     {
         return $this->increment($key, $value * -1);
     }
@@ -210,7 +210,7 @@ class FileStore implements Store, LockProvider
      * @param  mixed  $value
      * @return bool
      */
-    public function forever($key, $value)
+    public function forever($key, $value): bool
     {
         return $this->put($key, $value, 0);
     }
@@ -242,7 +242,7 @@ class FileStore implements Store, LockProvider
      * @param  string  $owner
      * @return \Voyager\Contracts\Cache\Lock
      */
-    public function restoreLock($name, $owner)
+    public function restoreLock($name, $owner): \Voyager\Contracts\Cache\Lock
     {
         return $this->lock($name, 0, $owner);
     }
@@ -302,7 +302,7 @@ class FileStore implements Store, LockProvider
      * @param  string  $key
      * @return bool
      */
-    public function forget($key)
+    public function forget($key): bool
     {
         if ($this->files->exists($file = $this->path($key))) {
             return tap($this->files->delete($file), function ($forgotten) use ($key) {
@@ -320,7 +320,7 @@ class FileStore implements Store, LockProvider
      *
      * @return bool
      */
-    public function flush()
+    public function flush(): bool
     {
         if (! $this->files->isDirectory($this->directory)) {
             return false;
@@ -487,7 +487,7 @@ class FileStore implements Store, LockProvider
      *
      * @return string
      */
-    public function getPrefix()
+    public function getPrefix(): string
     {
         return '';
     }

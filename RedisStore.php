@@ -75,7 +75,7 @@ class RedisStore extends TaggableStore implements LockProvider
      * @param  string  $key
      * @return mixed
      */
-    public function get($key)
+    public function get($key): mixed
     {
         $connection = $this->connection();
 
@@ -92,7 +92,7 @@ class RedisStore extends TaggableStore implements LockProvider
      * @param  array  $keys
      * @return array
      */
-    public function many(array $keys)
+    public function many(array $keys): array
     {
         if (count($keys) === 0) {
             return [];
@@ -126,7 +126,7 @@ class RedisStore extends TaggableStore implements LockProvider
      * @param  int  $seconds
      * @return bool
      */
-    public function put($key, $value, $seconds)
+    public function put($key, $value, $seconds): bool
     {
         $connection = $this->connection();
 
@@ -142,7 +142,7 @@ class RedisStore extends TaggableStore implements LockProvider
      * @param  int  $seconds
      * @return bool
      */
-    public function putMany(array $values, $seconds)
+    public function putMany(array $values, $seconds): bool
     {
         $connection = $this->connection();
 
@@ -199,9 +199,9 @@ class RedisStore extends TaggableStore implements LockProvider
      * @param  mixed  $value
      * @return int
      */
-    public function increment($key, $value = 1)
+    public function increment($key, $value = 1): bool|int
     {
-        return $this->connection()->incrby($this->prefix.$key, $value);
+        return $this->connection()->incrby($this->prefix.$key, $value) ?? false;
     }
 
     /**
@@ -211,9 +211,9 @@ class RedisStore extends TaggableStore implements LockProvider
      * @param  mixed  $value
      * @return int
      */
-    public function decrement($key, $value = 1)
+    public function decrement($key, $value = 1): bool|int
     {
-        return $this->connection()->decrby($this->prefix.$key, $value);
+        return $this->connection()->decrby($this->prefix.$key, $value) ?? false;
     }
 
     /**
@@ -223,7 +223,7 @@ class RedisStore extends TaggableStore implements LockProvider
      * @param  mixed  $value
      * @return bool
      */
-    public function forever($key, $value)
+    public function forever($key, $value): bool
     {
         $connection = $this->connection();
 
@@ -258,7 +258,7 @@ class RedisStore extends TaggableStore implements LockProvider
      * @param  string  $owner
      * @return \Voyager\Contracts\Cache\Lock
      */
-    public function restoreLock($name, $owner)
+    public function restoreLock($name, $owner): \Voyager\Contracts\Cache\Lock
     {
         return $this->lock($name, 0, $owner);
     }
@@ -269,7 +269,7 @@ class RedisStore extends TaggableStore implements LockProvider
      * @param  string  $key
      * @return bool
      */
-    public function forget($key)
+    public function forget($key): bool
     {
         return (bool) $this->connection()->del($this->prefix.$key);
     }
@@ -279,7 +279,7 @@ class RedisStore extends TaggableStore implements LockProvider
      *
      * @return bool
      */
-    public function flush()
+    public function flush(): bool
     {
         $this->connection()->flushdb();
 
@@ -426,9 +426,9 @@ class RedisStore extends TaggableStore implements LockProvider
      *
      * @return string
      */
-    public function getPrefix()
+    public function getPrefix(): string
     {
-        return $this->prefix;
+        return (string) $this->prefix;
     }
 
     /**

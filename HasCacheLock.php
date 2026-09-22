@@ -24,7 +24,7 @@ trait HasCacheLock
      * @param  string  $owner
      * @return \Voyager\Contracts\Cache\Lock
      */
-    public function restoreLock($name, $owner)
+    public function restoreLock($name, $owner): \Voyager\Contracts\Cache\Lock
     {
         return $this->lock($name, 0, $owner);
     }

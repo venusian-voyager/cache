@@ -13,15 +13,15 @@
     ],
     "require": {
         "php": "^8.4|^8.5",
-        "venusian-voyager/collections": "^0.8.0",
-        "venusian-voyager/contracts": "^0.8.0",
-        "venusian-voyager/macroable": "^0.8.0",
-        "venusian-voyager/nuts-and-bolts": "^0.8.0"
+        "venusian-voyager/collections": "^0.9.0",
+        "venusian-voyager/contracts": "^0.9.0",
+        "venusian-voyager/macroable": "^0.9.0",
+        "venusian-voyager/nuts-and-bolts": "^0.9.0"
     },
     "suggest": {
-        "venusian-voyager/database": "Required to use the database cache driver (^0.8.0).",
-        "venusian-voyager/filesystem": "Required to use the file cache driver (^0.8.0).",
-        "venusian-voyager/redis": "Required to use the redis cache driver (^0.8.0).",
+        "venusian-voyager/database": "Required to use the database cache driver (^0.9.0).",
+        "venusian-voyager/filesystem": "Required to use the file cache driver (^0.9.0).",
+        "venusian-voyager/redis": "Required to use the redis cache driver (^0.9.0).",
         "symfony/cache": "Required to use PSR-6 cache bridge (^7.2)."
     },
     "autoload": {
@@ -31,13 +31,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "0.8.x-dev"
-        },
-        "venusian": {
-            "upstream": "laravel/framework",
-            "upstream-ref": "v12.67.0",
-            "upstream-path": "src/Illuminate/Cache",
-            "ported-at": "2026-08-20"
+            "dev-main": "0.9.0-dev"
         }
     },
     "config": {

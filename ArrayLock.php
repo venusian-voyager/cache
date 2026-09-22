@@ -89,7 +89,7 @@ class ArrayLock extends Lock
      *
      * @return bool
      */
-    public function release()
+    public function release(): bool
     {
         if (! $this->exists()) {
             return false;
@@ -123,7 +123,7 @@ class ArrayLock extends Lock
      *
      * @return void
      */
-    public function forceRelease()
+    public function forceRelease(): void
     {
         unset($this->store->locks[$this->name]);
     }

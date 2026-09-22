@@ -5,11 +5,11 @@ namespace Voyager\Cache;
 use Closure;
 use Voyager\Contracts\Cache\Factory as FactoryContract;
 use Voyager\Contracts\Cache\Store;
-use Voyager\Contracts\Events\Dispatcher as DispatcherContract;
+use Voyager\Contracts\IOPools\Loop;
+use Voyager\Contracts\Signals\SignalDispatcher as DispatcherContract;
 use Voyager\NutsAndBolts\DataObjects\Arr;
 use InvalidArgumentException;
-use Mockery;
-use Mockery\LegacyMockInterface;
+use Voyager\Contracts\Vessel\DataBindingException;
 
 /**
  * @mixin \Voyager\Cache\Repository
@@ -54,7 +54,7 @@ class CacheManager implements FactoryContract
      * @param  string|null  $name
      * @return \Voyager\Contracts\Cache\Repository
      */
-    public function store($name = null)
+    public function store(?string $name = null)
     {
         $name = $name ?? $this->getDefaultDriver();
 
@@ -70,31 +70,6 @@ class CacheManager implements FactoryContract
     public function driver($driver = null)
     {
         return $this->store($driver);
-    }
-
-    /**
-     * Get a memoized cache driver instance.
-     *
-     * @param  string|null  $driver
-     * @return \Voyager\Contracts\Cache\Repository
-     */
-    public function memo($driver = null)
-    {
-        $driver = $driver ?? $this->getDefaultDriver();
-
-        $bindingKey = "cache.__memoized:{$driver}";
-
-        $isSpy = isset($this->app['cache']) && $this->app['cache'] instanceof LegacyMockInterface;
-
-        $this->app->scopedIf($bindingKey, function () use ($driver, $isSpy) {
-            $repository = $this->repository(
-                new MemoizedStore($driver, $this->store($driver)), ['events' => false]
-            );
-
-            return $isSpy ? Mockery::spy($repository) : $repository;
-        });
-
-        return $this->app->make($bindingKey);
     }
 
     /**
@@ -155,19 +130,6 @@ class CacheManager implements FactoryContract
     }
 
     /**
-     * Create an instance of the APC cache driver.
-     *
-     * @param  array  $config
-     * @return \Voyager\Cache\Repository
-     */
-    protected function createApcDriver(array $config)
-    {
-        $prefix = $this->getPrefix($config);
-
-        return $this->repository(new ApcStore(new ApcWrapper, $prefix), $config);
-    }
-
-    /**
      * Create an instance of the array cache driver.
      *
      * @param  array  $config
@@ -179,49 +141,6 @@ class CacheManager implements FactoryContract
             $config['serialize'] ?? false,
             $this->getSerializableClasses($config),
         ), $config);
-    }
-
-    /**
-     * Create an instance of the database cache driver.
-     *
-     * @param  array  $config
-     * @return \Voyager\Cache\Repository
-     */
-    protected function createDatabaseDriver(array $config)
-    {
-        $connection = $this->app['db']->connection($config['connection'] ?? null);
-
-        $store = new DatabaseStore(
-            $connection,
-            $config['table'],
-            $this->getPrefix($config),
-            $config['lock_table'] ?? 'cache_locks',
-            $config['lock_lottery'] ?? [2, 100],
-            $config['lock_timeout'] ?? 86400,
-            $this->getSerializableClasses($config),
-        );
-
-        return $this->repository(
-            $store->setLockConnection(
-                $this->app['db']->connection($config['lock_connection'] ?? $config['connection'] ?? null)
-            ),
-            $config
-        );
-    }
-
-    /**
-     * Create an instance of the failover cache driver.
-     *
-     * @param  array  $config
-     * @return \Voyager\Cache\Repository
-     */
-    protected function createFailoverDriver(array $config)
-    {
-        return $this->repository(new FailoverStore(
-            $this,
-            $this->app->make(DispatcherContract::class),
-            $config['stores']
-        ), ['events' => false, ...$config]);
     }
 
     /**
@@ -310,6 +229,14 @@ class CacheManager implements FactoryContract
             if ($config['events'] ?? true) {
                 $this->setEventDispatcher($repository);
             }
+
+            if ($this->app->isBound(Loop::class)) {
+                try {
+                    $repository->setLoop($this->app->make(Loop::class));
+                } catch (DataBindingException) {
+                    // The core alias can mark the loop bound before a concrete loop exists.
+                }
+            }
         });
     }
 
@@ -321,7 +248,7 @@ class CacheManager implements FactoryContract
      */
     protected function setEventDispatcher(Repository $repository)
     {
-        if (! $this->app->bound(DispatcherContract::class)) {
+        if (! $this->app->isBound(DispatcherContract::class)) {
             return;
         }
 
