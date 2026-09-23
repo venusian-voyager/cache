@@ -2,8 +2,8 @@
 
 namespace Voyager\Cache;
 
-use Voyager\Cache\Events\CacheFlushed;
-use Voyager\Cache\Events\CacheFlushing;
+use Voyager\Cache\Signals\CacheFlushed;
+use Voyager\Cache\Signals\CacheFlushing;
 use Voyager\Redis\Connections\PhpRedisClusterConnection;
 use Voyager\Redis\Connections\PhpRedisConnection;
 use Voyager\Redis\Connections\PredisClusterConnection;

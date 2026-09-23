@@ -1,8 +1,8 @@
 <?php
 
-namespace Voyager\Cache\Events;
+namespace Voyager\Cache\Signals;
 
-class CacheFlushFailed
+abstract class CacheEvent
 {
     /**
      * The name of the cache store.
@@ -10,6 +10,13 @@ class CacheFlushFailed
      * @var string|null
      */
     public $storeName;
+
+    /**
+     * The key of the event.
+     *
+     * @var string
+     */
+    public $key;
 
     /**
      * The tags that were assigned to the key.
@@ -22,11 +29,13 @@ class CacheFlushFailed
      * Create a new event instance.
      *
      * @param  string|null  $storeName
+     * @param  string  $key
      * @param  array  $tags
      */
-    public function __construct($storeName, array $tags = [])
+    public function __construct($storeName, $key, array $tags = [])
     {
         $this->storeName = $storeName;
+        $this->key = $key;
         $this->tags = $tags;
     }
 

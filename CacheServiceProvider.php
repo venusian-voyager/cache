@@ -3,8 +3,8 @@
 namespace Voyager\Cache;
 
 use Voyager\Contracts\NutsAndBolts\DeferrableProvider;
+use Voyager\Filesystem\Filesystem;
 use Voyager\NutsAndBolts\ServiceProvider;
-use Symfony\Component\Cache\Adapter\Psr16Adapter;
 
 class CacheServiceProvider extends ServiceProvider implements DeferrableProvider
 {
@@ -15,19 +15,19 @@ class CacheServiceProvider extends ServiceProvider implements DeferrableProvider
      */
     public function register()
     {
-        $this->app->singleton('cache', function ($app) {
+        if (! $this->app->isBound('files')) {
+            $this->app->registerSingleton('files', fn () => new Filesystem);
+        }
+
+        $this->app->registerSingleton('cache', function ($app) {
             return new CacheManager($app);
         });
 
-        $this->app->singleton('cache.store', function ($app) {
+        $this->app->registerSingleton('cache.store', function ($app) {
             return $app['cache']->driver();
         });
 
-        $this->app->singleton('cache.psr6', function ($app) {
-            return new Psr16Adapter($app['cache.store']);
-        });
-
-        $this->app->singleton(RateLimiter::class, function ($app) {
+        $this->app->registerSingleton(RateLimiter::class, function ($app) {
             return new RateLimiter($app->make('cache')->driver(
                 $app['config']->get('cache.limiter')
             ));
@@ -39,10 +39,10 @@ class CacheServiceProvider extends ServiceProvider implements DeferrableProvider
      *
      * @return array
      */
-    public function provides()
+    public function provides(): array
     {
         return [
-            'cache', 'cache.store', 'cache.psr6', RateLimiter::class,
+            'cache', 'cache.store', RateLimiter::class,
         ];
     }
 }

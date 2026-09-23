@@ -53,7 +53,7 @@ class CacheLock extends Lock
      *
      * @return bool
      */
-    public function release()
+    public function release(): bool
     {
         if ($this->isOwnedByCurrentProcess()) {
             return $this->store->forget($this->name);
@@ -67,7 +67,7 @@ class CacheLock extends Lock
      *
      * @return void
      */
-    public function forceRelease()
+    public function forceRelease(): void
     {
         $this->store->forget($this->name);
     }

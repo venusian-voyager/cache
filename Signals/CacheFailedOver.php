@@ -1,6 +1,6 @@
 <?php
 
-namespace Voyager\Cache\Events;
+namespace Voyager\Cache\Signals;
 
 use Throwable;
 

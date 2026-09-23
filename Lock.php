@@ -9,6 +9,8 @@ use Voyager\NutsAndBolts\Sleep;
 use Voyager\NutsAndBolts\DataObjects\Str;
 use RuntimeException;
 
+use function now;
+
 abstract class Lock implements LockContract
 {
     use InteractsWithTime;
@@ -71,7 +73,7 @@ abstract class Lock implements LockContract
      *
      * @return bool
      */
-    abstract public function release();
+    abstract public function release(): bool;
 
     /**
      * Returns the owner value written into the driver for this lock.
@@ -86,7 +88,7 @@ abstract class Lock implements LockContract
      * @param  callable|null  $callback
      * @return mixed
      */
-    public function get($callback = null)
+    public function get($callback = null): mixed
     {
         $result = $this->acquire();
 
@@ -110,7 +112,7 @@ abstract class Lock implements LockContract
      *
      * @throws \Voyager\Contracts\Cache\LockTimeoutException
      */
-    public function block($seconds, $callback = null)
+    public function block($seconds, $callback = null): mixed
     {
         $starting = ((int) now()->format('Uu')) / 1000;
 
@@ -153,7 +155,7 @@ abstract class Lock implements LockContract
      *
      * @return string
      */
-    public function owner()
+    public function owner(): string
     {
         return $this->owner;
     }

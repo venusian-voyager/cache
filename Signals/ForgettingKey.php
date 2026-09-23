@@ -1,6 +1,6 @@
 <?php
 
-namespace Voyager\Cache\Events;
+namespace Voyager\Cache\Signals;
 
 class ForgettingKey extends CacheEvent
 {

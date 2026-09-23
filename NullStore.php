@@ -14,9 +14,9 @@ class NullStore extends TaggableStore implements LockProvider
      * @param  string  $key
      * @return void
      */
-    public function get($key)
+    public function get($key): mixed
     {
-        //
+        return null;
     }
 
     /**
@@ -27,7 +27,7 @@ class NullStore extends TaggableStore implements LockProvider
      * @param  int  $seconds
      * @return bool
      */
-    public function put($key, $value, $seconds)
+    public function put($key, $value, $seconds): bool
     {
         return false;
     }
@@ -39,7 +39,7 @@ class NullStore extends TaggableStore implements LockProvider
      * @param  mixed  $value
      * @return false
      */
-    public function increment($key, $value = 1)
+    public function increment($key, $value = 1): bool|int
     {
         return false;
     }
@@ -51,7 +51,7 @@ class NullStore extends TaggableStore implements LockProvider
      * @param  mixed  $value
      * @return false
      */
-    public function decrement($key, $value = 1)
+    public function decrement($key, $value = 1): bool|int
     {
         return false;
     }
@@ -63,7 +63,7 @@ class NullStore extends TaggableStore implements LockProvider
      * @param  mixed  $value
      * @return bool
      */
-    public function forever($key, $value)
+    public function forever($key, $value): bool
     {
         return false;
     }
@@ -88,7 +88,7 @@ class NullStore extends TaggableStore implements LockProvider
      * @param  string  $owner
      * @return \Voyager\Contracts\Cache\Lock
      */
-    public function restoreLock($name, $owner)
+    public function restoreLock($name, $owner): \Voyager\Contracts\Cache\Lock
     {
         return $this->lock($name, 0, $owner);
     }
@@ -99,7 +99,7 @@ class NullStore extends TaggableStore implements LockProvider
      * @param  string  $key
      * @return bool
      */
-    public function forget($key)
+    public function forget($key): bool
     {
         return true;
     }
@@ -109,7 +109,7 @@ class NullStore extends TaggableStore implements LockProvider
      *
      * @return bool
      */
-    public function flush()
+    public function flush(): bool
     {
         return true;
     }
@@ -119,7 +119,7 @@ class NullStore extends TaggableStore implements LockProvider
      *
      * @return string
      */
-    public function getPrefix()
+    public function getPrefix(): string
     {
         return '';
     }
