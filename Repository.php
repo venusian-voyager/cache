@@ -24,6 +24,8 @@ use Voyager\Cache\Limiters\ConcurrencyLimiterBuilder;
 use Voyager\Contracts\Cache\LockProvider;
 use Voyager\Contracts\Cache\Repository as CacheContract;
 use Voyager\Contracts\Cache\Store;
+use Voyager\Cache\Async\AsyncStore;
+use Voyager\Cache\Async\AsyncRepository;
 use Voyager\Contracts\IOPools\Loop;
 use Voyager\Contracts\Signals\SignalDispatcher;
 use Voyager\NutsAndBolts\DataObjects\Carbon;
@@ -58,7 +60,17 @@ class Repository implements ArrayAccess, CacheContract
      */
     protected $events;
 
+    /** The loop async() operations settle on. The manager sets it with useAsync(). */
     protected ?Loop $loop = null;
+
+    /**
+     * Builds the store's async I/O the first time async() needs it; null when the store has none.
+     *
+     * @var (Closure(): AsyncStore)|null
+     */
+    protected ?Closure $make_async_store = null;
+
+    protected ?AsyncStore $async_store = null;
 
     /**
      * The default number of seconds to store items.
@@ -123,6 +135,7 @@ class Repository implements ArrayAccess, CacheContract
 
         $key = enum_value($key);
 
+        $this->settleAsync($this->itemKey($key));
         $this->event(new RetrievingKey($this->getName(), $key));
 
         $value = $this->store->get($this->itemKey($key));
@@ -365,6 +378,7 @@ class Repository implements ArrayAccess, CacheContract
             return $this->forget($key);
         }
 
+        $this->settleAsync($this->itemKey($key));
         $this->event(new WritingKey($this->getName(), $key, $value, $seconds));
 
         $result = $this->store->put($this->itemKey($key), $value, $seconds);
@@ -466,6 +480,8 @@ class Repository implements ArrayAccess, CacheContract
     {
         $key = enum_value($key);
 
+        $this->settleAsync($this->itemKey($key));
+
         $seconds = null;
 
         if ($ttl !== null) {
@@ -504,6 +520,8 @@ class Repository implements ArrayAccess, CacheContract
      */
     public function increment($key, $value = 1)
     {
+        $this->settleAsync($this->itemKey(enum_value($key)));
+
         return $this->store->increment(enum_value($key), $value);
     }
 
@@ -516,6 +534,8 @@ class Repository implements ArrayAccess, CacheContract
      */
     public function decrement($key, $value = 1)
     {
+        $this->settleAsync($this->itemKey(enum_value($key)));
+
         return $this->store->decrement(enum_value($key), $value);
     }
 
@@ -530,6 +550,7 @@ class Repository implements ArrayAccess, CacheContract
     {
         $key = enum_value($key);
 
+        $this->settleAsync($this->itemKey($key));
         $this->event(new WritingKey($this->getName(), $key, $value));
 
         $result = $this->store->forever($this->itemKey($key), $value);
@@ -708,6 +729,7 @@ class Repository implements ArrayAccess, CacheContract
     {
         $key = enum_value($key);
 
+        $this->settleAsync($this->itemKey($key));
         $this->event(new ForgettingKey($this->getName(), $key));
 
         return tap($this->store->forget($this->itemKey($key)), function ($result) use ($key) {
@@ -824,6 +846,14 @@ class Repository implements ArrayAccess, CacheContract
     }
 
     /**
+     * The number of seconds a TTL stands for, as put() counts them.
+     */
+    public function seconds(DateTimeInterface|\DateInterval|int $ttl): int
+    {
+        return $this->getSeconds($ttl);
+    }
+
+    /**
      * Get the name of the cache store.
      *
      * @return string|null
@@ -921,18 +951,38 @@ class Repository implements ArrayAccess, CacheContract
         $this->events = $events;
     }
 
-    /** The loop a defer() call queues on. The manager sets it; a bare repository needs it set by hand. */
-    public function setLoop(Loop $loop): static
+    /**
+     * Gives async() its loop, and the store its async I/O. The manager calls this; a store with
+     * no I/O of its own gets no factory, and its async operations run inline.
+     *
+     * @param (Closure(): AsyncStore)|null $make_store
+     */
+    public function useAsync(Loop $loop, ?Closure $make_store = null): static
     {
-        $this->loop = $loop;
+        [$this->loop, $this->make_async_store, $this->async_store] = [$loop, $make_store, null];
 
         return $this;
     }
 
-    /** Every call queued on the loop, answered by a promise. */
-    public function defer(): DeferredRepository
+    /**
+     * The repository's operations as promises: get, has, pull, put, forever, add, increment,
+     * decrement, forget and remember.
+     *
+     * @throws \RuntimeException no loop was set with useAsync()
+     */
+    public function async(): AsyncRepository
     {
-        return new DeferredRepository($this, $this->loop ?? throw new \RuntimeException('No event loop on this cache repository: call setLoop() first.'));
+        if (is_null($this->loop)) {
+            throw new \RuntimeException('This cache repository has no loop for async operations: the CacheManager sets one with useAsync().');
+        }
+
+        return new AsyncRepository($this, $this->loop, $this->async_store ??= $this->make_async_store?->__invoke());
+    }
+
+    /** A blocking call on a key waits for the async operations already made on it. */
+    protected function settleAsync(string $key): void
+    {
+        $this->async_store?->settle($key);
     }
 
     /**

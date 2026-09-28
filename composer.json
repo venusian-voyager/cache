@@ -21,6 +21,7 @@
     "suggest": {
         "venusian-voyager/database": "Required to use the database cache driver (^0.9.0).",
         "venusian-voyager/filesystem": "Required to use the file cache driver (^0.9.0).",
+        "venusian-voyager/io-pools": "Required for async(): the file store's operations run on its worker pools (^0.9.0).",
         "venusian-voyager/redis": "Required to use the redis cache driver (^0.9.0).",
         "symfony/cache": "Required to use PSR-6 cache bridge (^7.2)."
     },

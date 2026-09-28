@@ -6,6 +6,10 @@ use Closure;
 use Voyager\Contracts\Cache\Factory as FactoryContract;
 use Voyager\Contracts\Cache\Store;
 use Voyager\Contracts\IOPools\Loop;
+use Voyager\Cache\Async\AsyncStore;
+use Voyager\Cache\Async\FileAsyncStore;
+use Voyager\Cache\Async\RedisAsyncStore;
+use Voyager\Contracts\IOPools\WorkerPools\WorkerPool;
 use Voyager\Contracts\Signals\SignalDispatcher as DispatcherContract;
 use Voyager\NutsAndBolts\DataObjects\Arr;
 use InvalidArgumentException;
@@ -130,6 +134,36 @@ class CacheManager implements FactoryContract
     }
 
     /**
+     * How a store's I/O goes async. A file store's reads and writes run as gigs on a worker pool,
+     * the thread pool when it is on, the process pool otherwise; a redis store's commands go on
+     * the loop's own socket. Any other store has no I/O of its own to move, and runs inline.
+     *
+     * @return (Closure(): AsyncStore)|null
+     */
+    protected function asyncStore(Store $store, Loop $loop): ?Closure
+    {
+        return match (true) {
+            $store instanceof FileStore => fn (): AsyncStore => new FileAsyncStore($store, $loop, $this->workerPool(...)),
+            $store instanceof RedisStore => fn (): AsyncStore => new RedisAsyncStore($store, $store->getRedis()->pipe($store->connectionName()), $loop),
+            default => null,
+        };
+    }
+
+    /**
+     * @throws InvalidArgumentException neither worker pool is on
+     */
+    protected function workerPool(): WorkerPool
+    {
+        return match (true) {
+            $this->app->isBound('thread-pool') => $this->app->get('thread-pool'),
+            $this->app->isBound('process-pool') => $this->app->get('process-pool'),
+            default => throw new InvalidArgumentException(
+                'The file store runs async operations on a worker pool, and none is on: enable io-pools.pool_workers.threads or io-pools.pool_workers.process.'
+            ),
+        };
+    }
+
+    /**
      * Create an instance of the array cache driver.
      *
      * @param  array  $config
@@ -225,14 +259,15 @@ class CacheManager implements FactoryContract
      */
     public function repository(Store $store, array $config = [])
     {
-        return tap(new Repository($store, Arr::only($config, ['store'])), function ($repository) use ($config) {
+        return tap(new Repository($store, Arr::only($config, ['store'])), function ($repository) use ($store, $config) {
             if ($config['events'] ?? true) {
                 $this->setEventDispatcher($repository);
             }
 
             if ($this->app->isBound(Loop::class)) {
                 try {
-                    $repository->setLoop($this->app->make(Loop::class));
+                    $loop = $this->app->make(Loop::class);
+                    $repository->useAsync($loop, $this->asyncStore($store, $loop));
                 } catch (DataBindingException) {
                     // The core alias can mark the loop bound before a concrete loop exists.
                 }
