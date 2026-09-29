@@ -155,8 +155,8 @@ class CacheManager implements FactoryContract
     protected function workerPool(): WorkerPool
     {
         return match (true) {
-            $this->app->isBound('thread-pool') => $this->app->get('thread-pool'),
-            $this->app->isBound('process-pool') => $this->app->get('process-pool'),
+            $this->app->isBound('thread-workers') => $this->app->get('thread-workers'),
+            $this->app->isBound('process-workers') => $this->app->get('process-workers'),
             default => throw new InvalidArgumentException(
                 'The file store runs async operations on a worker pool, and none is on: enable io-pools.pool_workers.threads or io-pools.pool_workers.process.'
             ),
