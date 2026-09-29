@@ -8,6 +8,7 @@ use Voyager\Contracts\Cache\Store;
 use Voyager\Contracts\IOPools\Loop;
 use Voyager\Cache\Async\AsyncStore;
 use Voyager\Cache\Async\FileAsyncStore;
+use Voyager\Cache\Async\DatabaseAsyncStore;
 use Voyager\Cache\Async\RedisAsyncStore;
 use Voyager\Contracts\IOPools\WorkerPools\WorkerPool;
 use Voyager\Contracts\Signals\SignalDispatcher as DispatcherContract;
@@ -136,7 +137,8 @@ class CacheManager implements FactoryContract
     /**
      * How a store's I/O goes async. A file store's reads and writes run as gigs on a worker pool,
      * the thread pool when it is on, the process pool otherwise; a redis store's commands go on
-     * the loop's own socket. Any other store has no I/O of its own to move, and runs inline.
+     * the loop's own socket; a database store's operations are offloaded like any query on its
+     * connection. Any other store has no I/O of its own to move, and runs inline.
      *
      * @return (Closure(): AsyncStore)|null
      */
@@ -145,6 +147,7 @@ class CacheManager implements FactoryContract
         return match (true) {
             $store instanceof FileStore => fn (): AsyncStore => new FileAsyncStore($store, $loop, $this->workerPool(...)),
             $store instanceof RedisStore => fn (): AsyncStore => new RedisAsyncStore($store, $store->getRedis()->pipe($store->connectionName()), $loop),
+            $store instanceof DatabaseStore => fn (): AsyncStore => new DatabaseAsyncStore($store, $loop),
             default => null,
         };
     }
@@ -193,6 +196,33 @@ class CacheManager implements FactoryContract
                 $this->getSerializableClasses($config),
             ))
                 ->setLockDirectory($config['lock_path'] ?? null),
+            $config
+        );
+    }
+
+    /**
+     * Create an instance of the database cache driver. Locks go on the lock connection when one
+     * is named, on the cache's connection otherwise.
+     *
+     * @param  array  $config
+     * @return \Voyager\Cache\Repository
+     */
+    protected function createDatabaseDriver(array $config)
+    {
+        $db = $this->app['db'];
+
+        $store = new DatabaseStore(
+            $db->connection($config['connection'] ?? null),
+            $config['table'],
+            $this->getPrefix($config),
+            $config['lock_table'] ?? 'cache_locks',
+            $config['lock_lottery'] ?? [2, 100],
+            $config['lock_timeout'] ?? 86400,
+            $this->getSerializableClasses($config),
+        );
+
+        return $this->repository(
+            $store->setLockConnection($db->connection($config['lock_connection'] ?? $config['connection'] ?? null)),
             $config
         );
     }

@@ -1,0 +1,34 @@
+<?php
+
+use Voyager\Database\Migrations\Migration;
+use Voyager\Database\Schema\Blueprint;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        app('db.schema')->create('{{table}}', function (Blueprint $table) {
+            $table->string('key')->primary();
+            $table->mediumText('value');
+            $table->integer('expiration')->index();
+        });
+
+        app('db.schema')->create('{{table}}_locks', function (Blueprint $table) {
+            $table->string('key')->primary();
+            $table->string('owner');
+            $table->integer('expiration')->index();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        app('db.schema')->dropIfExists('{{table}}');
+        app('db.schema')->dropIfExists('{{table}}_locks');
+    }
+};
