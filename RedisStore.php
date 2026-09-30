@@ -411,6 +411,35 @@ class RedisStore extends TaggableStore implements LockProvider
         return $this;
     }
 
+    /** The name of the connection the store reads and writes through. */
+    public function connectionName(): string
+    {
+        return $this->connection;
+    }
+
+    /**
+     * The bytes put() would have Redis store for $value, for a socket that sends them itself:
+     * the same serialization, and the connection's phpredis serializer and compression if set.
+     */
+    public function encode(mixed $value): string
+    {
+        return (string) $this->pack($value, $this->connection());
+    }
+
+    /** A value from the bytes Redis holds for it: encode() in reverse. */
+    public function decode(string $raw): mixed
+    {
+        $connection = $this->connection();
+
+        if ($connection instanceof PhpRedisConnection && ($connection->serialized() || $connection->compressed())) {
+            $unpacked = $connection->client()->_unpack($raw);
+
+            return $connection->serialized() ? $unpacked : $this->unserialize($unpacked);
+        }
+
+        return $this->unserialize($raw);
+    }
+
     /**
      * Get the Redis database instance.
      *

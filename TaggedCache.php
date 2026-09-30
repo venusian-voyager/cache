@@ -33,6 +33,17 @@ class TaggedCache extends Repository
     }
 
     /**
+     * A tagged cache keeps its tag sets through the blocking calls only, so it has no async
+     * operations: use async() on the untagged store.
+     *
+     * @throws \BadMethodCallException
+     */
+    public function async(): never
+    {
+        throw new \BadMethodCallException('A tagged cache has no async operations: its tag sets are kept by the blocking calls only.');
+    }
+
+    /**
      * Store multiple items in the cache for a given number of seconds.
      *
      * @param  array  $values

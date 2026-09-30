@@ -86,11 +86,24 @@ class FileStore implements Store, LockProvider
      */
     public function put($key, $value, $seconds): bool
     {
+        return $this->putRaw($key, serialize($value), $this->expiration($seconds));
+    }
+
+    /**
+     * Stores an already-serialized value that expires at the given timestamp. If that moment has
+     * passed, the entry is gone rather than written: a put whose TTL ran out while it waited.
+     */
+    public function putRaw(string $key, string $serialized, int $expires_at): bool
+    {
+        if ($expires_at <= $this->currentTime()) {
+            $this->forget($key);
+
+            return true;
+        }
+
         $this->ensureCacheDirectoryExists($path = $this->path($key));
 
-        $result = $this->files->put(
-            $path, $this->expiration($seconds).serialize($value), true
-        );
+        $result = $this->files->put($path, $expires_at.$serialized, true);
 
         if ($result !== false && $result > 0) {
             $this->ensurePermissionsAreCorrect($path);
@@ -111,6 +124,19 @@ class FileStore implements Store, LockProvider
      */
     public function add($key, $value, $seconds)
     {
+        return $this->addRaw($key, serialize($value), $this->expiration($seconds));
+    }
+
+    /**
+     * Stores an already-serialized value that expires at the given timestamp, unless an unexpired
+     * one is there. A moment already passed adds nothing.
+     */
+    public function addRaw(string $key, string $serialized, int $expires_at): bool
+    {
+        if ($expires_at <= $this->currentTime()) {
+            return false;
+        }
+
         $this->ensureCacheDirectoryExists($path = $this->path($key));
 
         $file = new LockableFile($path, 'c+');
@@ -127,7 +153,7 @@ class FileStore implements Store, LockProvider
 
         if (empty($expire) || $this->currentTime() >= $expire) {
             $file->truncate()
-                ->write($this->expiration($seconds).serialize($value))
+                ->write($expires_at.$serialized)
                 ->close();
 
             $this->ensurePermissionsAreCorrect($path);
@@ -338,6 +364,41 @@ class FileStore implements Store, LockProvider
     }
 
     /**
+     * The stored value's serialized bytes, or null when there is none or it has expired. An
+     * expired entry is removed, as get() removes it. decode() turns the bytes back into the value.
+     */
+    public function getRaw(string $key): ?string
+    {
+        try {
+            if (is_null($contents = $this->files->get($this->path($key), true))) {
+                return null;
+            }
+        } catch (Exception) {
+            return null;
+        }
+
+        if ($this->currentTime() >= substr($contents, 0, 10)) {
+            $this->forget($key);
+
+            return null;
+        }
+
+        return substr($contents, 10);
+    }
+
+    /** A value from its serialized bytes, under the store's allowed classes. */
+    public function decode(string $serialized): mixed
+    {
+        return $this->unserialize($serialized);
+    }
+
+    /** The expiry timestamp put() would write for $seconds; 0 is forever. */
+    public function expiresAt(int $seconds): int
+    {
+        return $this->expiration($seconds);
+    }
+
+    /**
      * Retrieve an item and expiry time from the cache by key.
      *
      * @param  string  $key
@@ -434,6 +495,11 @@ class FileStore implements Store, LockProvider
         $time = $this->availableAt($seconds);
 
         return $seconds === 0 || $time > 9999999999 ? 9999999999 : $time;
+    }
+
+    public function getFilePermission(): ?int
+    {
+        return $this->filePermission;
     }
 
     /**

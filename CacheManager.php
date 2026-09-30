@@ -6,6 +6,11 @@ use Closure;
 use Voyager\Contracts\Cache\Factory as FactoryContract;
 use Voyager\Contracts\Cache\Store;
 use Voyager\Contracts\IOPools\Loop;
+use Voyager\Cache\Async\AsyncStore;
+use Voyager\Cache\Async\FileAsyncStore;
+use Voyager\Cache\Async\DatabaseAsyncStore;
+use Voyager\Cache\Async\RedisAsyncStore;
+use Voyager\Contracts\IOPools\WorkerPools\WorkerPool;
 use Voyager\Contracts\Signals\SignalDispatcher as DispatcherContract;
 use Voyager\NutsAndBolts\DataObjects\Arr;
 use InvalidArgumentException;
@@ -130,6 +135,38 @@ class CacheManager implements FactoryContract
     }
 
     /**
+     * How a store's I/O goes async. A file store's reads and writes run as gigs on a worker pool,
+     * the thread pool when it is on, the process pool otherwise; a redis store's commands go on
+     * the loop's own socket; a database store's operations are offloaded like any query on its
+     * connection. Any other store has no I/O of its own to move, and runs inline.
+     *
+     * @return (Closure(): AsyncStore)|null
+     */
+    protected function asyncStore(Store $store, Loop $loop): ?Closure
+    {
+        return match (true) {
+            $store instanceof FileStore => fn (): AsyncStore => new FileAsyncStore($store, $loop, $this->workerPool(...)),
+            $store instanceof RedisStore => fn (): AsyncStore => new RedisAsyncStore($store, $store->getRedis()->pipe($store->connectionName()), $loop),
+            $store instanceof DatabaseStore => fn (): AsyncStore => new DatabaseAsyncStore($store, $loop),
+            default => null,
+        };
+    }
+
+    /**
+     * @throws InvalidArgumentException neither worker pool is on
+     */
+    protected function workerPool(): WorkerPool
+    {
+        return match (true) {
+            $this->app->isBound('thread-workers') => $this->app->get('thread-workers'),
+            $this->app->isBound('process-workers') => $this->app->get('process-workers'),
+            default => throw new InvalidArgumentException(
+                'The file store runs async operations on a worker pool, and none is on: enable io-pools.pool_workers.threads or io-pools.pool_workers.process.'
+            ),
+        };
+    }
+
+    /**
      * Create an instance of the array cache driver.
      *
      * @param  array  $config
@@ -159,6 +196,33 @@ class CacheManager implements FactoryContract
                 $this->getSerializableClasses($config),
             ))
                 ->setLockDirectory($config['lock_path'] ?? null),
+            $config
+        );
+    }
+
+    /**
+     * Create an instance of the database cache driver. Locks go on the lock connection when one
+     * is named, on the cache's connection otherwise.
+     *
+     * @param  array  $config
+     * @return \Voyager\Cache\Repository
+     */
+    protected function createDatabaseDriver(array $config)
+    {
+        $db = $this->app['db'];
+
+        $store = new DatabaseStore(
+            $db->connection($config['connection'] ?? null),
+            $config['table'],
+            $this->getPrefix($config),
+            $config['lock_table'] ?? 'cache_locks',
+            $config['lock_lottery'] ?? [2, 100],
+            $config['lock_timeout'] ?? 86400,
+            $this->getSerializableClasses($config),
+        );
+
+        return $this->repository(
+            $store->setLockConnection($db->connection($config['lock_connection'] ?? $config['connection'] ?? null)),
             $config
         );
     }
@@ -225,14 +289,15 @@ class CacheManager implements FactoryContract
      */
     public function repository(Store $store, array $config = [])
     {
-        return tap(new Repository($store, Arr::only($config, ['store'])), function ($repository) use ($config) {
+        return tap(new Repository($store, Arr::only($config, ['store'])), function ($repository) use ($store, $config) {
             if ($config['events'] ?? true) {
                 $this->setEventDispatcher($repository);
             }
 
             if ($this->app->isBound(Loop::class)) {
                 try {
-                    $repository->setLoop($this->app->make(Loop::class));
+                    $loop = $this->app->make(Loop::class);
+                    $repository->useAsync($loop, $this->asyncStore($store, $loop));
                 } catch (DataBindingException) {
                     // The core alias can mark the loop bound before a concrete loop exists.
                 }
