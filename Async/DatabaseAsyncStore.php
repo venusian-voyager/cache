@@ -73,6 +73,12 @@ final class DatabaseAsyncStore implements AsyncStore
         ConnectionLanes::current()?->settle((string) $this->store->getConnection()->getName(), true);
     }
 
+    /** No connection serializer to bypass: values are already stored as the store encodes them. */
+    public function raw(): AsyncStore
+    {
+        return $this;
+    }
+
     private function send(DatabaseOperationKind $kind, string $key, ?string $encoded = null, ?int $expiration = null, int $by = 0): Promise
     {
         try {

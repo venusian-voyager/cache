@@ -87,6 +87,12 @@ final class FileAsyncStore implements AsyncStore
         }
     }
 
+    /** No connection serializer to bypass: values are already stored as the store encodes them. */
+    public function raw(): AsyncStore
+    {
+        return $this;
+    }
+
     private function queue(string $key, FileOperationKind $kind, ?string $serialized = null, ?int $expires_at = null, int $by = 0): Promise
     {
         $promise = $this->loop->promise();

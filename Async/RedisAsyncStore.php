@@ -20,6 +20,9 @@ final class RedisAsyncStore implements AsyncStore
      */
     private array $out = [];
 
+    /** Whether values are encoded without the connection's serializer and compression. */
+    private bool $raw = false;
+
     public function __construct(
         private readonly RedisStore $store,
         private readonly RedisPipe $pipe,
@@ -29,24 +32,24 @@ final class RedisAsyncStore implements AsyncStore
     public function get(string $key): Promise
     {
         return $this->send($key, ['GET', $this->key($key)], "GET {$key}")
-            ->then(fn (?string $raw): mixed => is_null($raw) ? null : $this->store->decode($raw));
+            ->then(fn (?string $raw): mixed => is_null($raw) ? null : $this->decode($raw));
     }
 
     public function put(string $key, mixed $value, int $seconds): Promise
     {
-        return $this->send($key, ['SETEX', $this->key($key), (string) max(1, $seconds), $this->store->encode($value)], "SETEX {$key}")
+        return $this->send($key, ['SETEX', $this->key($key), (string) max(1, $seconds), $this->encode($value)], "SETEX {$key}")
             ->then(fn (mixed $reply): bool => $reply === 'OK');
     }
 
     public function forever(string $key, mixed $value): Promise
     {
-        return $this->send($key, ['SET', $this->key($key), $this->store->encode($value)], "SET {$key}")
+        return $this->send($key, ['SET', $this->key($key), $this->encode($value)], "SET {$key}")
             ->then(fn (mixed $reply): bool => $reply === 'OK');
     }
 
     public function add(string $key, mixed $value, int $seconds): Promise
     {
-        return $this->send($key, ['EVAL', LuaScripts::add(), '1', $this->key($key), $this->store->encode($value), (string) max(1, $seconds)], "add {$key}")
+        return $this->send($key, ['EVAL', LuaScripts::add(), '1', $this->key($key), $this->encode($value), (string) max(1, $seconds)], "add {$key}")
             ->then(fn (mixed $reply): bool => ! is_null($reply));
     }
 
@@ -66,6 +69,29 @@ final class RedisAsyncStore implements AsyncStore
         if (isset($this->out[$key])) {
             $this->loop->until(fn (): bool => ! isset($this->out[$key]));
         }
+    }
+
+    /**
+     * This store, writing and reading values without the connection's serializer and compression.
+     * The view shares the outstanding operations, so settle() waits for its writes too.
+     */
+    public function raw(): AsyncStore
+    {
+        $view = clone $this;
+        $view->raw = true;
+        $view->out = &$this->out;
+
+        return $view;
+    }
+
+    private function encode(mixed $value): string
+    {
+        return $this->raw ? $this->store->encodeRaw($value) : $this->store->encode($value);
+    }
+
+    private function decode(string $raw): mixed
+    {
+        return $this->raw ? $this->store->decodeRaw($raw) : $this->store->decode($raw);
     }
 
     /** The key as Redis holds it: the connection's prefix, then the store's. */

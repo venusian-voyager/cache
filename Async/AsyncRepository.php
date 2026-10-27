@@ -36,6 +36,21 @@ final class AsyncRepository
         private readonly ?AsyncStore $store,
     ) {}
 
+    /** The loop these operations settle on. */
+    public function loop(): Loop
+    {
+        return $this->loop;
+    }
+
+    /**
+     * These operations with values written and read without the store connection's own
+     * serializer and compression, as the blocking rate limiter's counters are.
+     */
+    public function raw(): AsyncRepository
+    {
+        return new AsyncRepository($this->repository, $this->loop, $this->store?->raw());
+    }
+
     /** @return Promise the value, or $default when there is none */
     public function get(UnitEnum|string $key, mixed $default = null): Promise
     {

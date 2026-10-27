@@ -34,4 +34,10 @@ interface AsyncStore
      * here first, so it sees the async writes made before it.
      */
     public function settle(string $key): void;
+
+    /**
+     * This store with values written and read without a connection's own serializer and
+     * compression, sharing what is outstanding. A store with no such layer returns itself.
+     */
+    public function raw(): AsyncStore;
 }

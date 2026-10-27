@@ -426,6 +426,21 @@ class RedisStore extends TaggableStore implements LockProvider
         return (string) $this->pack($value, $this->connection());
     }
 
+    /**
+     * The bytes a write stores with the connection's serializer and compression off: what the
+     * rate limiter's counters hold, so INCRBY can count them.
+     */
+    public function encodeRaw(mixed $value): string
+    {
+        return (string) $this->serialize($value);
+    }
+
+    /** A value from bytes written with encodeRaw(). */
+    public function decodeRaw(string $raw): mixed
+    {
+        return $this->unserialize($raw);
+    }
+
     /** A value from the bytes Redis holds for it: encode() in reverse. */
     public function decode(string $raw): mixed
     {
