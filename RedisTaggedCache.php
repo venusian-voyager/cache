@@ -12,6 +12,20 @@ use Voyager\Redis\Connections\PredisConnection;
 class RedisTaggedCache extends TaggedCache
 {
     /**
+     * The cache store implementation.
+     *
+     * @var \Voyager\Cache\RedisStore
+     */
+    protected $store;
+
+    /**
+     * The tag set instance.
+     *
+     * @var \Voyager\Cache\RedisTagSet
+     */
+    protected $tags;
+
+    /**
      * Store an item in the cache if the key does not exist.
      *
      * @param  string  $key

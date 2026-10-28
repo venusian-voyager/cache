@@ -25,7 +25,7 @@ class CacheManager implements FactoryContract
     /**
      * The application instance.
      *
-     * @var \Voyager\Contracts\System\Application
+     * @var \Voyager\Contracts\Core\FrameworkCore
      */
     protected $app;
 
@@ -46,7 +46,7 @@ class CacheManager implements FactoryContract
     /**
      * Create a new Cache manager instance.
      *
-     * @param  \Voyager\Contracts\System\Application  $app
+     * @param  \Voyager\Contracts\Core\FrameworkCore  $app
      */
     public function __construct($app)
     {
@@ -264,7 +264,7 @@ class CacheManager implements FactoryContract
     /**
      * Get the session store implementation.
      *
-     * @return \Voyager\Contracts\Session\Session
+     * @return mixed
      *
      * @throws \InvalidArgumentException
      */
@@ -439,7 +439,7 @@ class CacheManager implements FactoryContract
     /**
      * Set the application instance used by the manager.
      *
-     * @param  \Voyager\Contracts\System\Application  $app
+     * @param  \Voyager\Contracts\Core\FrameworkCore  $app
      * @return $this
      */
     public function setApplication($app)

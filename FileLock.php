@@ -5,6 +5,13 @@ namespace Voyager\Cache;
 class FileLock extends CacheLock
 {
     /**
+     * The cache store implementation.
+     *
+     * @var \Voyager\Cache\FileStore
+     */
+    protected $store;
+
+    /**
      * Attempt to acquire the lock.
      *
      * @return bool

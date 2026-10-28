@@ -9,6 +9,13 @@ use Voyager\NutsAndBolts\LazyCollection;
 class RedisTagSet extends TagSet
 {
     /**
+     * The cache store implementation.
+     *
+     * @var \Voyager\Cache\RedisStore
+     */
+    protected $store;
+
+    /**
      * Add a reference entry to the tag set's underlying sorted set.
      *
      * @param  string  $key
