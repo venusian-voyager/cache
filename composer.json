@@ -13,17 +13,17 @@
     ],
     "require": {
         "php": "~8.4.27||^8.5.12",
-        "venusian-voyager/collections": "^0.10.0",
-        "venusian-voyager/contracts": "^0.10.0",
-        "venusian-voyager/filesystem": "^0.10.0",
-        "venusian-voyager/macroable": "^0.10.0",
-        "venusian-voyager/nuts-and-bolts": "^0.10.0"
+        "venusian-voyager/collections": "^0.11.0",
+        "venusian-voyager/contracts": "^0.11.0",
+        "venusian-voyager/filesystem": "^0.11.0",
+        "venusian-voyager/macroable": "^0.11.0",
+        "venusian-voyager/nuts-and-bolts": "^0.11.0"
     },
     "suggest": {
-        "venusian-voyager/console": "Required for cache:clear, cache:forget and make:cache-table (^0.10.0).",
-        "venusian-voyager/database": "Required to use the database cache driver (^0.10.0).",
-        "venusian-voyager/io-pools": "Required for async(): the file store's operations run on its worker pools (^0.10.0).",
-        "venusian-voyager/redis": "Required to use the redis cache driver (^0.10.0)."
+        "venusian-voyager/console": "Required for cache:clear, cache:forget and make:cache-table (^0.11.0).",
+        "venusian-voyager/database": "Required to use the database cache driver (^0.11.0).",
+        "venusian-voyager/io-pools": "Required for async(): the file store's operations run on its worker pools (^0.11.0).",
+        "venusian-voyager/redis": "Required to use the redis cache driver (^0.11.0)."
     },
     "autoload": {
         "psr-4": {
@@ -32,7 +32,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "0.10.x-dev"
+            "dev-main": "0.11.x-dev"
         }
     },
     "config": {
